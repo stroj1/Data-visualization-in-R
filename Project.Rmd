@@ -1,0 +1,195 @@
+---
+title: "Project"
+subtitle: "STAE04/DABN19: Data Visualization"
+author: "Stephany Rojas Gerena"
+date: "`r Sys.Date()`"
+papersize: a4
+geometry: margin=3cm
+colorlinks: true
+output:
+  rmarkdown::pdf_document:
+    number_sections: true
+    fig_caption: yes        
+    includes:  
+      in_header: my_header.tex
+---
+
+```{r setup, include = FALSE}
+# Setup options for R Markdown
+knitr::opts_chunk$set(
+  echo       = FALSE,    # Do not print code
+  warning    = FALSE,    # Suppress warnings
+  message    = FALSE,    # Suppress messages
+  fig.align  = "center" # Center figures
+)
+
+library(tidyverse)
+library(ggmosaic)
+library(patchwork)
+
+# Set a theme for ggplot2
+theme_set(theme_grey(base_size = 10))
+
+# Set options
+options(
+  digits = 3, # limit the number of significant digits
+  width  = 63 # limit the width of code output
+)
+```
+
+# Introduction
+
+
+Cardiovascular diseases (CVDs) are the number 1 cause of death globally, taking an estimated 17.9 million lives each year, which accounts for 31% of all deaths worldwide. The causes of heart disease are unclear, but age, gender, family history, and ethnic background are all considered to be the major causes in different investigations. People with high cardiovascular risk (due to the presence of one or more risk factors such as hypertension, diabetes) need early detection and management, and here is where machine learning is an useful tool to model, predict and detect CVDs. 
+
+In this project we want to explore some of the risk factors that may have an influence in having a CVD. Some of the variables that we will explore are the main causes already mentioned: age, gender, blood pressure and cholesterol.
+
+
+We will use the data set **Heart Failure Prediction** that contains information of patients at hospitals in Cleveland, Hungary, Switzerland and Long Beach. Originally this data was donated by David W. Aha in July,1988 to UCI machine learning repository. However, we will use another version, that contains only the main attributes and all the countries together. This version was created by Fedesoriano in september 2021 using the original data set from UCI. Is for public use, available in kaggle [https://www.kaggle.com/fedesoriano/heart-failure-prediction].  
+
+Our data set has 918 observations and 12 variables. Table 1 contains a detailed description of the variables that we will use in this project
+
+
+Table 1. Variables description
+
+|Variable| Description | Measurement |
+|:-----|:------|:---------------|
+|Age| age of the patient| years |
+|Sex| sex of the patient| M: Male, F: Female|
+|ChestPainType| chest pain type| TA: Typical Angina, ATA: Atypical Angina, NAP: Non-Anginal Pain, ASY: Asymptomatic|
+|RestingBP| resting blood pressure| mm Hg|
+|Cholesterol| serum cholesterol| mm/dl|
+|MaxHR| maximum heart rate achieved| Numeric value between 60 and 202|
+|HeartDisease| output class| 1: heart disease, 0: Normal|
+
+
+
+# Analysis
+
+
+
+We want to analyze the relationship between heart disease and gender. We want to see if a specific gender is more likely to suffer from a heart disease or not. In figure 1 we can see the amount of people that suffer or not from heard disease by sex. First we will analyse the graph per sex. There is a higher proportion of male with heart disease than without heart disease. For female, it is totally the opposite, we can see that there is a significantly higher proportion of female without heart disease than with heart disease. 
+
+If we now look at the comparison between sexes, We can see that male has a significantly higher amount of people with heart disease compared to female, which could lead us to believe that gender is a factor that influences suffering from heart disease. However, if we take a closer look, we can see that we have more observations for male than for female, therefore comparison between sex is not correct because is probably bias by the amount of data that was collected per sex. 
+
+
+```{r,fig.cap="Heart disease by gender in patients from Cleveland, Hungary, Switzerland and Long Beach",fig.width=5,fig.height=3}
+
+heartOr<-read.csv("heart.csv")
+
+heart<-heartOr%>% mutate(HeartDisease = as_factor(ifelse(HeartDisease, "Yes", "No")),Sex=as_factor(ifelse(Sex=="F", "Female", "Male")))
+
+
+
+  #ggplot(heart, aes(Sex, fill = HeartDisease)) +
+  #geom_bar(position = "fill") +
+  #labs(y="Proportion",colour = "Heart Disiease")
+  
+  
+  ggplot(heart) +
+  geom_mosaic(aes(x=product(Sex), fill=HeartDisease)) +
+  labs(y="Heart disease",fill="Heart disease")+ theme(axis.title=element_text(size=11))
+ 
+
+```
+
+Now we want to see how the patients with heart disease are distributed between ages and sex. This will help us understand if there is a certain age were the risk of suffering from heart disease is higher, and also if this distribution is any different between sexes. With that purpose, we will filter only those patients with heart disease, and we will plot an histogram with the count of patients that suffer from heart disease at each age, and we will compare between sexes.
+
+In figure 2 we can see that for both sexes the age with the highest number of patients with heart disease is between 55 and 65. We can say that there is no significant difference between gender in the distribution for patients with heart disease.
+
+
+```{r,fig.height=3,fig.width=6,fig.cap="Histogram of patients with hear disease by gender"}
+
+
+heartdisease <- heart %>%
+  filter(HeartDisease == "Yes")
+
+ggplot(heartdisease) + geom_histogram(aes(Age, fill=HeartDisease)) + facet_wrap("Sex",scales = "free") +
+  labs(fill = "Heart disease")
+
+
+#ggplot(heartdisease, aes(Age, fill = ChestPainType)) +
+ # geom_density(position = "fill", col = "white")   
+
+
+```
+
+Now we want to explore the risks factors associated with CVDs. We will focus in two risk factors: cholesterol and blood pressure. We will explore the relationship between these factors and gender and age. 
+
+
+First, we will analyze the distribution of the risk factors. In figure 3 in the left-hand side we can see the distribution of cholesterol per gender. We can see that for female the interquartile ranges are reasonably similar (as shown by the lengths of the boxes) between patients with or without heart disease, whereas for male the interquartile ranges are significantly different, having a wider range for patients with heart disease. Also, we can see that female has a slightly higher cholesterol than men, specially for patients with heart disease. 
+
+In the right hand side we can see the distribution of the Blood pressure. We can observe that female patients with heart disease have higher blood pressure compared to other patients. For the other type of patients interquartile ranges are very similar without significant variation.
+
+
+```{r,fig.cap="Boxplot of Cholesterol and Blood pressure for patients with and without CVD",fig.width=6,fig.height=3}
+
+a<- ggplot(heart, aes(HeartDisease,Cholesterol)) +
+  geom_boxplot() + facet_wrap("Sex") + labs(x="Heart disease",y="Cholesterol (mm/dl)")
+
+b <- ggplot(heart, aes(HeartDisease,RestingBP)) +
+  geom_boxplot() + facet_wrap("Sex") + labs(x="Heart disease",y="Blood pressure (mm Hg)")
+
+
+a+b
+
+#ggplot(heart, aes(HeartDisease,Cholesterol)) +
+ # geom_violin() + facet_wrap("Sex")
+
+```
+Now we want to see the relationship between cholesterol and age for patients with and without heart disease. We will use a scatter plot and we will fit the data with a linear smoother because we don't have much observations for ages above 65 so a flexible smoother would show wild behaviors at the extremes. 
+
+In figure 4 we can see that there is a direct relationship between age and cholesterol levels for female patients without heart disease, and there is an inverse relationship for male patients with heart disease. There is no significant difference in cholesterol levels for male patients with or without CVDs, whereas for female, the difference is very pronounced. For female patients without CVD cholesterol levels are around 300 mm/dl after 60 years, but is around 200 mm/dl under 30 years, whereas for female patients with CVD is around 260 mm/dl for all ages. 
+
+
+```{r,fig.cap="Cholesterol per age for patients with and without heart disease"}
+
+heart_no_0 <- heart %>%
+  filter(Cholesterol > 0)
+
+
+
+heart_no_0 %>%
+ggplot(aes(Age,Cholesterol,color=Sex))+
+  geom_point(position=position_jitter(),alpha=0.5)+
+  facet_wrap("HeartDisease")+geom_smooth(formula=y~x,method = "lm")+labs(y="Cholesterol (mm/dl)")
+
+
+```
+
+Now we want to analyze the relationship between blood pressure and age for patients with and without heart disease. In figure 5 we can see that there is no significant difference in the trend for male and female without CVD, and also the relationship between blood pressure and age is not very pronounced for those patients. In the other hand, for female patients with CVD the relationship is much more pronounced between blood pressure and age than for male. For both genders, in the case of patients with CVD, as they get older, the blood pressure increases. 
+
+
+```{r, fig.cap="Blood pressure per age for patients with and without heart disease"}
+
+
+ggplot(heart,aes(Age,RestingBP,color=Sex))+
+  geom_point(position=position_jitter(width = 0.3, height = 0.8),alpha=0.6)+
+  facet_wrap("HeartDisease")+geom_smooth(formula=y~x,method = "lm")+ labs(y="Blood pressure (mm Hg)",colour = "Sex")
+
+
+
+
+#ggplot(heart,aes(Age,RestingBP))+
+ # geom_point(position=position_jitter(width = 0.3, height = 0.8),alpha=0.6)+
+  #facet_grid(vars(HeartDisease),vars(Sex))+geom_smooth(formula=y~x,method = "lm")
+
+
+```
+Lastly, we want to explore the relationship between age and chest pain types for patients with CVD. In figure 6 we can see that for patients before 40 years old, TA (Typical Angina) is the most common type of pain. For patients between For patients between 55 and 60 years the most common is ATA (Atypical Angina). We can see that there is no significant difference in ASY: Asymptomatic pain across ages, whereas TA: Typical Angina has significant variation across age. 
+
+
+```{r,fig.cap="Density plot of chest pain type"}
+
+ggplot(heartdisease, aes(Age, fill = ChestPainType)) +
+  geom_density(position = "fill", col = "white")+labs(fill="Chest pain type")
+
+
+
+```
+
+# Conclusion
+
+
+In conclusion, the highest risk of suffering from heart disease is between 55 and 65 years old. Women tend to have higher risk factors than men: higher cholesterol and higher blood pressure. Cholesterol levels across age are very different for female patients with or without CVD, but for man there is no significant difference. Female patients with CVD have significantly higher blood pressure than other patients, and also Blood pressure increases with age for those patients. Despite having higher risk factors, female patients are healthier than male patients, because there are more females without CVD than with CVD, and the proportion of male with CVD is significantly higher. 
+
